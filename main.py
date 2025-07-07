@@ -18,6 +18,10 @@ index = pc.Index(index_name)
 # 3) FastAPI app
 app = FastAPI(title="Cabin Assistant")
 
+@app.get("/")
+def root():
+    return {"status": "ok"}
+
 class ChatRequest(BaseModel):
     question: str
 
