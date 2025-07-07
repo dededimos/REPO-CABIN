@@ -1,5 +1,6 @@
 import os
 from fastapi import FastAPI
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 from openai import OpenAI
 from dotenv import load_dotenv
@@ -18,26 +19,26 @@ index = pc.Index(index_name)
 # 3) FastAPI app
 app = FastAPI(title="Cabin Assistant")
 
-@app.get("/")
-def root():
-    return {"status": "ok"}
+# 4) Serve static files (PDF + chat) από τον φάκελο "static"
+app.mount("/", StaticFiles(directory="static", html=True), name="static")
 
+# 5) Chat endpoint
 class ChatRequest(BaseModel):
     question: str
 
 @app.post("/chat")
 def chat(req: ChatRequest):
-    # 3.1 Embedding ερωτήματος
+    # 5.1 Embedding ερωτήματος
     q_emb = client.embeddings.create(
         input=req.question,
         model="text-embedding-3-small"
     ).data[0].embedding
 
-    # 3.2 Αναζήτηση στο Pinecone (top‑k = 30)
+    # 5.2 Αναζήτηση στο Pinecone (top‑k = 30)
     res = index.query(vector=q_emb, top_k=30, include_metadata=True)
     context = "\n".join([match["metadata"]["text"] for match in res["matches"]])
 
-    # 3.3 Κλήση ChatGPT
+    # 5.3 Κλήση ChatGPT
     system_prompt = (
         "Είσαι βοηθός πωλήσεων για καμπίνες μπάνιου. "
         "Χρησιμοποίησε μόνο τις παρακάτω πληροφορίες για να απαντήσεις.\n\n"
