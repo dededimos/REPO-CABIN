@@ -76,15 +76,103 @@ body { margin: 0; font-family: Arial, sans-serif; }
     <div id="helper-content">
       <p>Κείμενο, σημειώσεις ή ό,τι άλλο χρειάζεσαι.</p>
       <p>Αυτό το πλαίσιο έχει δικό του scroll.</p>
-      <p>...</p>
-      <p>...</p>
-      <p>...</p>
-    </div>
+<!DOCTYPE html>
+<html lang="el">
+<head>
+<meta charset="UTF-8">
+<title>Full‑screen PDF + Chat 7×4 cm</title>
+<style>
+/* ----------- Reset ----------- */
+* { box-sizing: border-box; }
+body { margin: 0; font-family: Arial, sans-serif; }
+
+/* ----------- PDF full‑screen ----------- */
+#pdf-wrapper {
+  position: fixed;
+  top: 0; left: 0;
+  width: 100vw;
+  height: 100vh;
+  overflow: auto;          /* scroll αν πολλές σελίδες */
+  background: #fff;
+}
+#pdf-handle {
+  background: #444;
+  color: #fff;
+  padding: 4px 8px;
+  cursor: move;
+  user-select: none;
+}
+#pdf-frame {
+  width: 100%;
+  height: 100%;
+  border: none;
+}
+
+/* ----------- Chat 7×4 cm ----------- */
+#chat-wrapper {
+  width: 7cm;
+  height: 4cm;
+  overflow: hidden;        /* scroll μόνο στο chatbox */
+  border: 2px solid #0077ff;
+  position: absolute;      /* μετακινείται μέσα στο pdf-wrapper */
+  top: 60px; left: 60px;
+  background: #f9f9ff;
+}
+#chat-handle {
+  background: #0077ff;
+  color: #fff;
+  padding: 4px 8px;
+  cursor: move;
+  user-select: none;
+  font-size: 12px;
+}
+
+/* Chat history */
+#chatbox {
+  height: calc(100% - 55px); /* διαθέσιμο ύψος μέσα στα 4 cm */
+  overflow-y: auto;
+  border: 1px solid #ccc;
+  padding: 4px;
+  margin: 4px;
+  font-size: 12px;
+}
+
+/* Input & button */
+#msg {
+  width: 58%;
+  margin-left: 4px;
+  font-size: 12px;
+}
+button {
+  margin: 4px;
+  font-size: 12px;
+}
+</style>
+</head>
+<body>
+
+<!-- ----------- PDF full‑screen ----------- -->
+<div id="pdf-wrapper">
+  <div id="pdf-handle">Σύρε εδώ για να μετακινήσεις το PDF</div>
+
+  <!-- ΣΗΜ.: ΔΕΝ βάζουμε toolbar=0, άρα το toolbar εμφανίζεται κανονικά -->
+  <iframe id="pdf-frame"
+          src="cabin_2023.pdf#view=FitH"></iframe>
+
+  <!-- ----------- Chat 7×4 cm ----------- -->
+  <div id="chat-wrapper">
+    <div id="chat-handle">Chat 7×4 cm (σύρε εδώ)</div>
+
+    <div id="chatbox"></div>
+
+    <input id="msg" type="text" placeholder="Πληκτρολόγησε..."
+           onkeydown="if(event.key==='Enter')sendMsg()">
+    <button onclick="sendMsg()">Αποστολή</button>
   </div>
 </div>
 
 <script>
-/* ----------------- Drag‑and‑drop λογική ----------------- */
+/* ----------- Drag‑and‑drop ----------- */
 function makeDraggable(el, handle, constrainToParent = false) {
   let isDown = false, startX = 0, startY = 0;
 
@@ -100,7 +188,6 @@ function makeDraggable(el, handle, constrainToParent = false) {
     let newLeft = e.clientX - startX;
     let newTop  = e.clientY - startY;
 
-    /* Αν constrainToParent == true, κρατά το στοιχείο μέσα στον γονέα */
     if (constrainToParent) {
       const parent = el.parentElement;
       const maxLeft = parent.clientWidth  - el.offsetWidth;
@@ -108,7 +195,6 @@ function makeDraggable(el, handle, constrainToParent = false) {
       newLeft = Math.max(0, Math.min(newLeft, maxLeft));
       newTop  = Math.max(0, Math.min(newTop,  maxTop));
     }
-
     el.style.left = newLeft + 'px';
     el.style.top  = newTop  + 'px';
   });
@@ -116,18 +202,40 @@ function makeDraggable(el, handle, constrainToParent = false) {
   document.addEventListener('mouseup', () => isDown = false);
 }
 
-/* Κάνουμε draggable: */
+/* PDF: ελεύθερο drag */
 makeDraggable(
-  document.getElementById('outer-wrapper'),
-  document.getElementById('outer-handle'),
-  false  /* το outer κινείται ελεύθερα στη σελίδα */
+  document.getElementById('pdf-wrapper'),
+  document.getElementById('pdf-handle'),
+  false
 );
 
+/* Chat: drag ΜΟΝΟ μέσα στο PDF (7×4 cm) */
 makeDraggable(
-  document.getElementById('helper-wrapper'),
-  document.getElementById('helper-handle'),
-  true   /* το helper κινείται ΜΟΝΟ μέσα στο outer */
+  document.getElementById('chat-wrapper'),
+  document.getElementById('chat-handle'),
+  true
 );
+
+/* ----------- CHAT λειτουργία ----------- */
+async function sendMsg() {
+  const input = document.getElementById("msg");
+  const userMsg = input.value.trim();
+  if (!userMsg) return;
+  input.value = "";
+
+  const chatbox = document.getElementById("chatbox");
+  chatbox.innerHTML += `<p><b>Εσύ:</b> ${userMsg}</p>`;
+
+  /* Παράδειγμα κλήσης backend */
+  const res = await fetch("https://repo-cabin.onrender.com/chat", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ question: userMsg })
+  });
+  const data = await res.json();
+  chatbox.innerHTML += `<p><b>Βοηθός:</b> ${data.answer}</p>`;
+  chatbox.scrollTop = chatbox.scrollHeight;
+}
 </script>
 </body>
 </html>
