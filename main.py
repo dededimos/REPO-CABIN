@@ -29,16 +29,18 @@ def chat(req: ChatRequest):
         model="text-embedding-3-small"
     ).data[0].embedding
 
-    # 3.2 Αναζήτηση στο Pinecone (top‑k = 5)
+    # 3.2 Αναζήτηση στο Pinecone (top‑k = 30)
     res = index.query(vector=q_emb, top_k=30, include_metadata=True)
     context = "\n".join([match["metadata"]["text"] for match in res["matches"]])
 
     # 3.3 Κλήση ChatGPT
     system_prompt = (
         "Είσαι βοηθός πωλήσεων για καμπίνες μπάνιου. "
-        "Χρησιμοποίησε μόνο τις παρακάτω πληροφορίες για να απαντήσεις:\n\n"
-        + context
+        "Χρησιμοποίησε μόνο τις παρακάτω πληροφορίες για να απαντήσεις.\n\n"
+        + context +
+        "\n\nΑν βρεις περισσότερες από μία τιμές, εμφάνισέ τες όλες."
     )
+
     completion = client.chat.completions.create(
         model="gpt-4o-mini",
         messages=[
