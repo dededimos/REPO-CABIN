@@ -30,7 +30,7 @@ def chat(req: ChatRequest):
     ).data[0].embedding
 
     # 3.2 Αναζήτηση στο Pinecone (top‑k = 5)
-    res = index.query(vector=q_emb, top_k=15, include_metadata=True)
+    res = index.query(vector=q_emb, top_k=30, include_metadata=True)
     context = "\n".join([match["metadata"]["text"] for match in res["matches"]])
 
     # 3.3 Κλήση ChatGPT
