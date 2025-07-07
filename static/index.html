@@ -2,61 +2,132 @@
 <html lang="el">
 <head>
 <meta charset="UTF-8">
-<title>Viewport 7×7 cm σε PDF 29×21 cm</title>
-
+<title>PDF 29×21 cm + Helper 7×7 cm</title>
 <style>
-/* Γενικά */
+/* Βασικό reset */
+* { box-sizing: border-box; }
 body { margin: 0; font-family: Arial, sans-serif; }
 
-/* Παράθυρο 7 × 7 cm */
-#pdf-wrapper {
-  width: 7cm;          /* πλάτος wrapper */
-  height: 7cm;         /* ύψος wrapper */
-  overflow: auto;      /* scroll και οριζόντιο & κάθετο */
-  border: 1px solid #888;
-  position: absolute;  /* για drag‑and‑drop */
-  top: 20px; left: 20px;
-  cursor: move;
+/* ---------- 1. Μεγάλο παράθυρο (29×21 cm) ---------- */
+#outer-wrapper {
+  width: 29cm;            /* πλάτος 29 cm */
+  height: 21cm;           /* ύψος 21 cm */
+  overflow: auto;         /* scroll αν χρειαστεί */
+  border: 2px solid #444; /* περίγραμμα */
+  position: absolute;     /* για μετακίνηση στη σελίδα */
+  top: 40px; left: 40px;  /* αρχική θέση */
   background: #fff;
 }
 
-/* Το iframe με το PDF στις πραγματικές διαστάσεις */
-#pdf-wrapper iframe {
-  width: 29cm;         /* πραγματικό πλάτος σελίδας */
-  height: 21cm;        /* πραγματικό ύψος σελίδας */
+/* Λαβή drag του outer */
+#outer-handle {
+  background: #444;
+  color: #fff;
+  padding: 4px 8px;
+  cursor: move;
+  user-select: none;
+}
+
+/* Το PDF στο 100 % (iframe) */
+#pdf-frame {
+  width: 29cm;
+  height: 21cm;
   border: none;
+  display: block;
+}
+
+/* ---------- 2. Μικρό helper (7×7 cm) ---------- */
+#helper-wrapper {
+  width: 7cm;
+  height: 7cm;
+  overflow: auto;         /* scroll */
+  border: 2px solid #0077ff;
+  position: absolute;     /* θα μετακινείται μέσα στο outer */
+  top: 60px; left: 60px;  /* αρχική θέση */
+  background: #f9f9ff;
+}
+
+/* Λαβή drag του helper */
+#helper-handle {
+  background: #0077ff;
+  color: #fff;
+  padding: 4px 8px;
+  cursor: move;
+  user-select: none;
+}
+
+/* Ενδεικτικό περιεχόμενο βοηθού */
+#helper-content {
+  padding: 8px;
+  font-size: 14px;
 }
 </style>
 </head>
 <body>
 
-<!-- Παράθυρο 7×7 cm -->
-<div id="pdf-wrapper">
-  <!-- #zoom=100 → 100% κλίμακα, για να μην κάνει fit‑to‑width/height -->
-  <iframe src="cabin_2023.pdf#page=1&zoom=100"></iframe>
+<!-- 1. Μεγάλο παράθυρο PDF -->
+<div id="outer-wrapper">
+  <div id="outer-handle">Μετακίνησε το PDF (29×21 cm)</div>
+  <iframe id="pdf-frame" src="cabin_2023.pdf#zoom=100"></iframe>
+
+  <!-- 2. Μικρό helper μέσα στο outer -->
+  <div id="helper-wrapper">
+    <div id="helper-handle">Βοηθός 7×7 cm</div>
+    <div id="helper-content">
+      <p>Κείμενο, σημειώσεις ή ό,τι άλλο χρειάζεσαι.</p>
+      <p>Αυτό το πλαίσιο έχει δικό του scroll.</p>
+      <p>...</p>
+      <p>...</p>
+      <p>...</p>
+    </div>
+  </div>
 </div>
 
 <script>
-/* -------- Drag‑and‑drop για το pdf-wrapper -------- */
-(function () {
-  const el = document.getElementById('pdf-wrapper');
-  let isDown = false, offsetX = 0, offsetY = 0;
+/* ----------------- Drag‑and‑drop λογική ----------------- */
+function makeDraggable(el, handle, constrainToParent = false) {
+  let isDown = false, startX = 0, startY = 0;
 
-  el.addEventListener('mousedown', (e) => {
+  handle.addEventListener('mousedown', (e) => {
     isDown = true;
-    offsetX = e.clientX - el.offsetLeft;
-    offsetY = e.clientY - el.offsetTop;
+    startX = e.clientX - el.offsetLeft;
+    startY = e.clientY - el.offsetTop;
+    e.preventDefault();
   });
 
   document.addEventListener('mousemove', (e) => {
     if (!isDown) return;
-    el.style.left = (e.clientX - offsetX) + 'px';
-    el.style.top  = (e.clientY - offsetY) + 'px';
+    let newLeft = e.clientX - startX;
+    let newTop  = e.clientY - startY;
+
+    /* Αν constrainToParent == true, κρατά το στοιχείο μέσα στον γονέα */
+    if (constrainToParent) {
+      const parent = el.parentElement;
+      const maxLeft = parent.clientWidth  - el.offsetWidth;
+      const maxTop  = parent.clientHeight - el.offsetHeight;
+      newLeft = Math.max(0, Math.min(newLeft, maxLeft));
+      newTop  = Math.max(0, Math.min(newTop,  maxTop));
+    }
+
+    el.style.left = newLeft + 'px';
+    el.style.top  = newTop  + 'px';
   });
 
   document.addEventListener('mouseup', () => isDown = false);
-})();
-/* --------------------------------------------------- */
+}
+
+/* Κάνουμε draggable: */
+makeDraggable(
+  document.getElementById('outer-wrapper'),
+  document.getElementById('outer-handle'),
+  false  /* το outer κινείται ελεύθερα στη σελίδα */
+);
+
+makeDraggable(
+  document.getElementById('helper-wrapper'),
+  document.getElementById('helper-handle'),
+  true   /* το helper κινείται ΜΟΝΟ μέσα στο outer */
+);
 </script>
 </body>
 </html>
