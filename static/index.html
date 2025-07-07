@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="el">
+<head>
+<meta charset="UTF-8">
+<iframe src="cabin_2023.pdf"
+        width="100%"
+        height="100%">
+</iframe>
+
+<style>
+body { margin:0; font-family: Arial, sans-serif; }
+#chatbox { height: 300px; overflow-y: auto; border:1px solid #ccc; padding:6px; }
+#msg { width: 70%; }
+</style>
+</head>
+<body>
+<div id="chatbox"></div>
+<input id="msg" type="text" placeholder="Ρώτησε κάτι..." onkeydown="if(event.key==='Enter')sendMsg()">
+<button onclick="sendMsg()">Αποστολή</button>
+
+<script>
+async function sendMsg() {
+  const input = document.getElementById("msg");
+  const userMsg = input.value.trim();
+  if (!userMsg) return;
+  input.value = "";
+
+  const chatbox = document.getElementById("chatbox");
+  chatbox.innerHTML += `<p><b>Εσύ:</b> ${userMsg}</p>`;
+
+  const res = await fetch("https://repo-cabin.onrender.com/chat", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ question: userMsg })
+  });
+  const data = await res.json();
+  chatbox.innerHTML += `<p><b>Βοηθός:</b> ${data.answer}</p>`;
+  chatbox.scrollTop = chatbox.scrollHeight;
+}
+</script>
+</body>
+</html>
